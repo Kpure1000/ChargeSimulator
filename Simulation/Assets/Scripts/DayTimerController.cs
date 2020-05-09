@@ -9,15 +9,15 @@ public class DayTimerController : MonoBehaviour
     /// <summary>
     /// 当前实际时间
     /// </summary>
-    public int curTime { get; set; }
+    public static int curTime { get; set; }
     /// <summary>
     /// 最大实际时间
     /// </summary>
-    private const int maxCurTime = 1440;
+    public static int maxCurTime = 1440;
     /// <summary>
     /// 当前格式时间（只读）
     /// </summary>
-    public Vector2Int curDayTime
+    public static Vector2Int curDayTime
     {
         get { return new Vector2Int(curTime / 60, curTime % 60); }
     }
@@ -30,11 +30,13 @@ public class DayTimerController : MonoBehaviour
     /// </summary>
     public GameObject timeText;
 
+    /**********************************************************/
+
     private void Start()
     {
         curTime = 60 * initCurDayTime.x + initCurDayTime.y;
 
-        InvokeRepeating("dayTimeUpdate", 0f, 1f);
+        InvokeRepeating("dayTimeUpdate", 0f, 0.2f);
     }
     /// <summary>
     /// 增量重复监听方法
@@ -44,6 +46,8 @@ public class DayTimerController : MonoBehaviour
         curTime++;
         curTime %= maxCurTime;
     }
+
+    /**********************************************************/
 
     private void Update()
     {
