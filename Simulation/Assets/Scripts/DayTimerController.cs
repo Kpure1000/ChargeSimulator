@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.UI;
 
 public class DayTimerController : MonoBehaviour
@@ -14,6 +15,11 @@ public class DayTimerController : MonoBehaviour
     /// 最大实际时间
     /// </summary>
     public static int maxCurTime = 1440;
+    /// <summary>
+    /// 重复间隔时间
+    /// </summary>
+    [Range(.1f, 1f)]
+    public float repeatRate = 0.1f;
     /// <summary>
     /// 当前格式时间（只读）
     /// </summary>
@@ -29,8 +35,12 @@ public class DayTimerController : MonoBehaviour
     /// 引用时间显示UI
     /// </summary>
     public GameObject timeText;
+    Text timeText_textComponent;
 
     public GameObject timeScaleText;
+    Text timeScaleText_textComponent;
+
+    private float realTime;
 
     /**********************************************************/
 
@@ -38,9 +48,13 @@ public class DayTimerController : MonoBehaviour
     {
         curTime = 60 * initCurDayTime.x + initCurDayTime.y;
 
+        timeText_textComponent = timeText.GetComponent<Text>();
+        timeScaleText_textComponent = timeScaleText.GetComponent<Text>();
         button_Normal();
 
-        InvokeRepeating("dayTimeUpdate", 0f, 0.1f);
+        realTime = 0;
+
+        //InvokeRepeating("dayTimeUpdate", 0f, repeatRate);
     }
     /// <summary>
     /// 增量重复监听方法
@@ -49,36 +63,40 @@ public class DayTimerController : MonoBehaviour
     {
         curTime++;
         curTime %= maxCurTime;
+
+        if (timeText == null) return;
+        timeText_textComponent.text = string.Format("{0:00}:{1:00}", curDayTime.x, curDayTime.y);
+    }
+    /// <summary>
+    /// 监听
+    /// </summary>
+    private void FixedUpdate()
+    {
+        if(realTime >= repeatRate)
+        {
+            realTime = 0f;
+            dayTimeUpdate();
+        }
+        realTime += Time.fixedDeltaTime;
     }
 
     /**********************************************************/
 
-    private void Update()
-    {
-        timeTextUpdate();
-    }
-    /// <summary>
-    /// 更新时间显示UI的时间
-    /// </summary>
-    private void timeTextUpdate()
-    {
-        if (timeText == null) return;
-        timeText.GetComponent<Text>().text = string.Format("{0:00}:{1:00}", curDayTime.x, curDayTime.y);
-    }
+
 
     public void button_Pause()
     {
         Time.timeScale = 0;
-        timeScaleText.GetComponent<Text>().text = "时间缩放：x0";
+        timeScaleText_textComponent.text = "时间缩放：x0";
     }
     public void button_Normal()
     {
         Time.timeScale = 1;
-        timeScaleText.GetComponent<Text>().text = "时间缩放：x1";
+        timeScaleText_textComponent.text = "时间缩放：x1";
     }
     public void button_Fast()
     {
         Time.timeScale = 10;
-        timeScaleText.GetComponent<Text>().text = "时间缩放：x10";
+        timeScaleText_textComponent.text = "时间缩放：x10";
     }
 }
