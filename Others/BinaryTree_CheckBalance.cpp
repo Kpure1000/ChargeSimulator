@@ -39,9 +39,9 @@ public:
     {
         if (root)
         {
-            Traverse(root->left, Operation);
-            Traverse(root->right, Operation);
-            Operation(root, Bndoe);
+            Traverse(root->left, Bnode, Operation);
+            Traverse(root->right, Bnode, Operation);
+            Operation(root, Bnode);
         }
     }
 };
