@@ -5,11 +5,15 @@ using System.Runtime.InteropServices;
 using UnityEngine;
 using Pathfinding;
 using UnityEditor;
+using UnityEditor.Animations;
 
 [RequireComponent(typeof(UserInfo))]
 public class UserController : MonoBehaviour
 {
     /**********************************************************/
+    /// <summary>
+    /// 用户信息接入
+    /// </summary>
     [NonSerialized]
     public UserInfo userInfo;
 
@@ -36,10 +40,64 @@ public class UserController : MonoBehaviour
     /// </summary>
     public UserState _curState { get; set; }
 
+    //其他变量
+    /// <summary>
+    /// 是否真正开始充电
+    /// </summary>
+    [NonSerialized]
+    public bool isCharge;
+
     /// <summary>
     /// 状态实例放在字典中
     /// </summary>
     public Dictionary<UserStateType, UserState> _stateDic = new Dictionary<UserStateType, UserState>();
+
+    public void StateController(int StateKey)
+    {
+        if (_stateDic.ContainsKey((UserStateType)StateKey))
+        {
+            if (_curState.Equals(_stateDic[(UserStateType)StateKey])) return;
+
+            _curState.Exit();
+
+            _curState = _stateDic[(UserStateType)StateKey];
+            switch (_curState.StateType)
+            {
+                case UserStateType.Running:
+                    _curState.Enter(this);
+                    break;
+                case UserStateType.Charging:
+                    _curState.Enter(this, chooseBar(1));
+                    break;
+                case UserStateType.getCharged:
+                    _curState.Enter(this, chooseBar(2));
+                    break;
+                case UserStateType.Resting:
+                    _curState.Enter(this);
+                    break;
+                default:
+                    break;
+            }
+        }
+        
+    }
+
+    private string chooseBar(int a)
+    {
+        if(a==1)
+        {
+            //找电量最少的充电桩
+            return barA.barInfo.curBattery < barB.barInfo.curBattery ? 
+                barA.gameObject.ToString() : barB.gameObject.ToString();
+        }
+        if(a==2)
+        {
+            //找电量多的
+            return barA.barInfo.curBattery > barB.barInfo.curBattery ?
+                barA.gameObject.ToString() : barB.gameObject.ToString();
+        }
+        return barA.ToString();
+    }
 
     /**********************************************************/
     //寻路
@@ -53,6 +111,10 @@ public class UserController : MonoBehaviour
 
     [Tooltip("充电桩B")]
     public Transform chargeBarBTarget;
+
+    public ChargeBarController barA;
+
+    public ChargeBarController barB;
 
     [Tooltip("停车位")]
     public Transform parkingTarget;
@@ -85,6 +147,10 @@ public class UserController : MonoBehaviour
 
     /**********************************************************/
 
+    public DayTimerController dayTimerController;
+
+    /**********************************************************/
+
     private void Awake()
     {
         _stateDic[UserStateType.Running] = new UserRunState();
@@ -92,19 +158,41 @@ public class UserController : MonoBehaviour
         _stateDic[UserStateType.Charging] = new UserChargingState();
         _stateDic[UserStateType.Resting] = new UserRestState();
 
+        //写入初始状态
         _curState = _stateDic[initState];
     }
 
     private void Start()
     {
+        isCharge = false;
+
         userInfo = GetComponent<UserInfo>();
         aipath = GetComponent<AIPath>();
-        _curState.Enter(this);
+        if (_curState.StateType == UserStateType.Running)
+            _curState.Enter(this);
+        else if (_curState.StateType == UserStateType.getCharged)
+            _curState.Enter(this, chargeBarATarget.ToString());
     }
 
     private void Update()
     {
         _curState.Update();
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if(other.gameObject.name.Equals("ChargeCapsule_A") || other.gameObject.name.Equals("ChargeCapsule_B"))
+        {
+            isCharge = true;
+        }
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        if (other.gameObject.name.Equals("ChargeCapsule_A") || other.gameObject.name.Equals("ChargeCapsule_B"))
+        {
+            isCharge = false;
+        }
     }
 
     /**********************************************************/
@@ -188,173 +276,5 @@ public class UserController : MonoBehaviour
 			currentWayPoint = 0;
 		}
 	}*/
-
-}
-
-public abstract class UserState
-{
-    public abstract UserController.UserStateType StateType { get; }
-
-    public abstract void Enter(params object[] param);
-
-    public abstract void Update();
-
-    public abstract void Exit();
-
-    public bool isEnter = false;
-}
-
-public class UserRunState : UserState
-{
-    public override UserController.UserStateType StateType
-    {
-        get { return UserController.UserStateType.Running; }
-    }
-
-    public override void Enter(params object[] param)
-    {
-        isEnter = true;
-        userController = param[0] as UserController;
-
-        int nearistTargetIndex = 0;
-        float minDistance = Vector3.Distance(userController.transform.position, userController.runningTargets[nearistTargetIndex].position);
-        float curDistance;
-        for (int i = 0; i < userController.runningTargets.GetLength(0); i++)
-        {
-            curDistance = Vector3.Distance(userController.transform.position, userController.runningTargets[i].position);
-            if (minDistance > curDistance)
-            {
-                minDistance = curDistance;
-                
-                nearistTargetIndex = i;
-            }
-        }
-        userController.curTarget = userController.runningTargets[nearistTargetIndex];
-    }
-
-    public override void Exit()
-    {
-        isEnter = false;
-    }
-
-    public override void Update()
-    {
-        if (isEnter == false) return;
-        //到达
-        if (userController.aipath.endReachedDistance > 
-            Vector3.Distance(userController.transform.position,userController.curTarget.position))
-        {
-            Debug.Log("Running:到达目标");
-
-            currentIndex++;
-            currentIndex %= userController.runningTargets.GetLength(0);
-            userController.curTarget = userController.runningTargets[currentIndex];
-        }
-    }
-
-    /**********************************************************/
-
-    private UserController userController;
-
-    private int currentIndex;
-}
-
-public class UserChargingState : UserState
-{
-    public override UserController.UserStateType StateType
-    {
-        get { return UserController.UserStateType.Charging; }
-    }
-
-    public override void Enter(params object[] param)
-    {
-        isEnter = true;
-    }
-
-    public override void Exit()
-    {
-        isEnter = false;
-    }
-
-    public override void Update()
-    {
-        if (isEnter == false) return;
-    }
-
-    /**********************************************************/
-
-    private UserController userController;
-    
-}
-
-public class UserChargedState : UserState
-{
-    public override UserController.UserStateType StateType
-    {
-        get { return UserController.UserStateType.getCharged; }
-    }
-    /// <summary>
-    /// 需要两参数，1.userController, 2.chargeBarTargetName
-    /// </summary>
-    /// <param name="param"></param>
-    public override void Enter(params object[] param)
-    {
-        isEnter = true;
-
-        userController = param[0] as UserController;
-
-        string BarName = param[1] as string;
-
-        if(BarName.Equals(userController.chargeBarATarget.ToString()))
-        {
-            userController.curTarget = userController.chargeBarATarget;
-        }
-        else if (BarName.Equals(userController.chargeBarBTarget.ToString()))
-        {
-            userController.curTarget = userController.chargeBarBTarget;
-        }
-    }
-
-    public override void Exit()
-    {
-        isEnter = false;
-    }
-
-    public override void Update()
-    {
-        if (isEnter == false) return;
-    }
-
-    /**********************************************************/
-
-    UserController userController;
-
-}
-public class UserRestState : UserState
-{
-    public override UserController.UserStateType StateType
-    {
-        get { return UserController.UserStateType.Resting; }
-    }
-
-    public override void Enter(params object[] param)
-    {
-        isEnter = true;
-        userController = param[0] as UserController;
-
-        userController.curTarget = userController.parkingTarget;
-    }
-
-    public override void Exit()
-    {
-        isEnter = false;
-    }
-
-    public override void Update()
-    {
-        if (isEnter == false) return;
-    }
-
-    UserController userController;
 
 }

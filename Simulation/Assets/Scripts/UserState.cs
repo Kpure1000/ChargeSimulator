@@ -44,6 +44,7 @@ public class UserRunState : UserState
                 nearistTargetIndex = i;
             }
         }
+        currentIndex = nearistTargetIndex;
         userController.curTarget = userController.runningTargets[nearistTargetIndex];
     }
 
@@ -59,10 +60,6 @@ public class UserRunState : UserState
         if (userController.aipath.endReachedDistance >
             Vector3.Distance(userController.transform.position, userController.curTarget.position))
         {
-#if UNITY_EDITOR
-            Debug.Log("Running:到达目标");
-#endif
-
             currentIndex++;
             currentIndex %= userController.runningTargets.GetLength(0);
             userController.curTarget = userController.runningTargets[currentIndex];
@@ -86,16 +83,47 @@ public class UserChargingState : UserState
     public override void Enter(params object[] param)
     {
         isEnter = true;
+
+        userController = param[0] as UserController;
+
+        string BarName = param[1] as string;
+
+        if (BarName.Equals(userController.chargeBarATarget.gameObject.ToString()))
+        {
+            userController.curTarget = userController.chargeBarATarget;
+        }
+        else if (BarName.Equals(userController.chargeBarBTarget.gameObject.ToString()))
+        {
+            userController.curTarget = userController.chargeBarBTarget;
+        }
     }
 
     public override void Exit()
     {
         isEnter = false;
+
+        if(userController.isCharge)
+        {
+            //发送消息给userInfo
+            userController.userInfo.chargeRecord.EndCharge(DayTimerController.curDayTime,
+                    userController.userInfo.userInfo.curBattery, userController.userInfo.simulationParam);
+            //改变积分
+            userController.userInfo.userInfo.Currency += userController.userInfo.chargeRecord.rewards;
+            //加入消息列表
+            userController.userInfo.AddToMsgList();
+        }
     }
 
     public override void Update()
     {
         if (isEnter == false) return;
+
+        //如果已经进入充电区域
+        if(userController.isCharge)
+        {
+            userController.userInfo.chargeRecord.StartCharge(DayTimerController.curDayTime, 
+                userController.userInfo.userInfo.curBattery);
+        }
     }
 
     /**********************************************************/
@@ -122,11 +150,11 @@ public class UserChargedState : UserState
 
         string BarName = param[1] as string;
 
-        if (BarName.Equals(userController.chargeBarATarget.ToString()))
+        if (BarName.Equals(userController.chargeBarATarget.gameObject.ToString()))
         {
             userController.curTarget = userController.chargeBarATarget;
         }
-        else if (BarName.Equals(userController.chargeBarBTarget.ToString()))
+        else if (BarName.Equals(userController.chargeBarBTarget.gameObject.ToString()))
         {
             userController.curTarget = userController.chargeBarBTarget;
         }
@@ -135,16 +163,41 @@ public class UserChargedState : UserState
     public override void Exit()
     {
         isEnter = false;
+
+        if (userController.isCharge)
+        {
+            //是否付费
+            //停止时间
+            userController.dayTimerController.button_Pause();
+            //弹窗
+            userController.userInfo.PayPanel.SetActive(true);
+
+            //发送消息给userInfo
+            userController.userInfo.chargeRecord.EndCharge(DayTimerController.curDayTime,
+                    userController.userInfo.userInfo.curBattery, userController.userInfo.simulationParam);
+            //改变余额
+            userController.userInfo.userInfo.Balance += userController.userInfo.chargeRecord.balance;
+            //加入消息列表
+            userController.userInfo.AddToMsgList();
+        }
     }
 
     public override void Update()
     {
         if (isEnter == false) return;
+
+        //如果已经进入充电区域
+        if (userController.isCharge)
+        {
+            userController.userInfo.chargeRecord.StartCharge(DayTimerController.curDayTime,
+                userController.userInfo.userInfo.curBattery);
+        }
     }
 
     /**********************************************************/
 
     UserController userController;
+
 
 }
 public class UserRestState : UserState
