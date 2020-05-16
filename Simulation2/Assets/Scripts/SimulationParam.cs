@@ -24,7 +24,7 @@ public class SimulationParam : ScriptableObject
     [Space(30, order = 0)]
     [Header("充电桩设置：", order = 1)]
     [Header("获取太阳能速度", order = 2)]
-    [Range(5, 20)]
+    [Range(1, 20)]
     public int getSunPowerSpeed = 10;
 
     /// <summary>
@@ -35,7 +35,7 @@ public class SimulationParam : ScriptableObject
     public int getCarPowerSpeed = 3;
 
     /// <summary>
-    /// 若低于此电量，不被用户寻找
+    /// 若低于此电量，不被用户寻找，仅被能够贡献电量的用户发现
     /// </summary>
     [Header("下限电量，低于此电量，仅被能够贡献电量的用户发现")]
     [Range(0f, 1f)]
@@ -49,36 +49,15 @@ public class SimulationParam : ScriptableObject
     [Space(30, order = 0)]
     [Header("电动车设置：", order = 1)]
     [Header("电动车被充电速度", order = 2)]
-    [Range(5, 20)]
+    [Range(1, 20)]
     public int getBarPowerSpeed = 10;
 
     /// <summary>
     /// 电动车耗电速度
     /// </summary>
     [Header("电动车耗电速度")]
-    [Range(1, 3)]
+    [Range(1, 5)]
     public int usePowerSpeed = 1;
-
-    ///// <summary>
-    ///// 充电积分速度（电量/每积分）
-    ///// </summary>
-    //[Header("充电积分速度（电量/每积分）")]
-    //[Range(10, 200)]
-    //public int chargeRewardSpeed = 10;
-
-    ///// <summary>
-    ///// 充电扣费速度（电量/每元）
-    ///// </summary>
-    //[Header("充电费用（电量/每元）")]
-    //[Range(1, 100)]
-    //public int chargeCostSpeed = 10;
-
-    ///// <summary>
-    ///// 失信处罚比例，用于削减积分
-    ///// </summary>
-    //[Header("失信处罚比例，用于削减积分")]
-    //[Range(0f, 1f)]
-    //public float creditPublishRate = .6f;
 
     /// <summary>
     /// 开始被充电的电量，低于此电量开始寻找充电桩充电，找不到则休息，直到充电桩有电

@@ -3,18 +3,39 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.Tracing;
 using UnityEngine;
+public enum stateType
+{
+    Running,
+    Resting,
+    Charged,
+    Charging
+}
 
 public abstract class userState
 {
+    public abstract stateType statettype
+    {
+        get;
+    }
+
     public abstract void Enter(params object[] param);
 
     public abstract void Update();
 
     public abstract void Exit();
+
+    protected UserController userController;
 }
 
 public class RunningState : userState
 {
+    public override stateType statettype
+    {
+        get
+        {
+            return stateType.Running;
+        }
+    }
     public override void Enter(params object[] param)
     {
         userController = param[0] as UserController;
@@ -38,7 +59,7 @@ public class RunningState : userState
 
     public override void Update()
     {
-        if(userController.isClosed)
+        if (userController.isClosed)
         {
             curIndex++;
             curIndex %= userController.runningTargets.Count;
@@ -47,13 +68,100 @@ public class RunningState : userState
     }
 
     int curIndex = 0;
-    UserController userController;
+
 }
 
-public enum stateType
+public class RestingState : userState
 {
-    Running,
-    Resting,
-    Charged,
-    Charging
+    public override stateType statettype
+    {
+        get
+        {
+            return stateType.Resting;
+        }
+    }
+
+    public override void Enter(params object[] param)
+    {
+        userController = param[0] as UserController;
+        //原地休息
+        userController.barTarget = userController.restTarget;
+    }
+
+    public override void Exit()
+    {
+        
+    }
+
+    public override void Update()
+    {
+        
+    }
+}
+
+public class ChargedState : userState
+{
+    public override stateType statettype
+    {
+        get
+        {
+            return stateType.Charged;
+        }
+    }
+
+    public override void Enter(params object[] param)
+    {
+        userController = param[0] as UserController;
+
+        targetBar = param[1] as BarController;
+
+        userController.barTarget = targetBar.transform;
+    }
+
+    public override void Exit()
+    {
+
+    }
+
+    public override void Update()
+    {
+
+    }
+    /// <summary>
+    /// 目标充电桩
+    /// </summary>
+    BarController targetBar;
+}
+
+public class ChargingState : userState
+{
+    public override stateType statettype
+    {
+        get
+        {
+            return stateType.Charging;
+        }
+    }
+    public override void Enter(params object[] param)
+    {
+        userController = param[0] as UserController;
+
+        targetBar = param[1] as BarController;
+
+        userController.barTarget = targetBar.transform;
+    }
+
+    public override void Exit()
+    {
+
+    }
+
+    public override void Update()
+    {
+
+    }
+    /// <summary>
+    /// 目标充电桩
+    /// </summary>
+    BarController targetBar;
 }
