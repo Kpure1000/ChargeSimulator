@@ -52,6 +52,8 @@ public class DayTimerController : MonoBehaviour
         timeScaleText_textComponent = timeScaleText.GetComponent<Text>();
         button_Normal();
 
+        quitConfirmPanel.SetActive(false);
+
         realTime = 0;
 
         //InvokeRepeating("dayTimeUpdate", 0f, repeatRate);
@@ -98,5 +100,22 @@ public class DayTimerController : MonoBehaviour
     {
         Time.timeScale = 10;
         timeScaleText_textComponent.text = "时间缩放：x10";
+    }
+
+    public GameObject quitConfirmPanel;
+
+    public void OpenQuitConfirmPanel()
+    {
+        button_Pause();
+        quitConfirmPanel.SetActive(true);
+    }
+
+    public void ExitSimulation()
+    {
+#if UNITY_EDITOR
+        UnityEditor.EditorApplication.isPlaying = false;
+#else
+        Application.Quit();
+#endif
     }
 }

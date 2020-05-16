@@ -21,7 +21,7 @@ public class SimulationParam : ScriptableObject
     [Space(30, order = 0)]
     [Header("充电桩设置：", order = 1)]
     [Header("获取太阳能速度", order = 2)]
-    [Range(5, 20)]
+    [Range(1, 20)]
     public int getSunPowerSpeed = 10;
 
     /// <summary>
@@ -46,14 +46,14 @@ public class SimulationParam : ScriptableObject
     [Space(30, order = 0)]
     [Header("电动车设置：", order = 1)]
     [Header("电动车被充电速度", order = 2)]
-    [Range(5, 20)]
+    [Range(1, 20)]
     public int getBarPowerSpeed = 10;
 
     /// <summary>
     /// 电动车耗电速度
     /// </summary>
     [Header("电动车耗电速度")]
-    [Range(1, 3)]
+    [Range(1, 5)]
     public int usePowerSpeed = 1;
 
     /// <summary>

@@ -1,11 +1,7 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
 using UnityEngine;
 using Pathfinding;
-using UnityEditor;
-using UnityEditor.Animations;
 
 [RequireComponent(typeof(UserInfo))]
 public class UserController : MonoBehaviour
@@ -44,8 +40,10 @@ public class UserController : MonoBehaviour
     /// <summary>
     /// 是否真正开始充电
     /// </summary>
-    [NonSerialized]
-    public bool isCharge;
+
+    public bool isCharge = false;
+
+    public bool isPark;
 
     /// <summary>
     /// 状态实例放在字典中
@@ -79,18 +77,56 @@ public class UserController : MonoBehaviour
                     break;
             }
         }
-        
+    }
+
+    void StateInit(UserStateType userInitState)
+    {
+        if (_stateDic.ContainsKey(userInitState))
+        {
+            _curState = _stateDic[userInitState];
+
+            switch (_curState.StateType)
+            {
+                case UserStateType.Running:
+                    _curState.Enter(this);
+                    break;
+                case UserStateType.Charging:
+                    _curState.Enter(this, chooseBar(1));
+                    break;
+                case UserStateType.getCharged:
+                    _curState.Enter(this, chooseBar(2));
+                    break;
+                case UserStateType.Resting:
+                    _curState.Enter(this);
+                    break;
+                default:
+                    break;
+            }
+#if UNITY_EDITOR
+            //Debug.Log("初始化状态: " + _curState.StateType.ToString());
+#endif
+
+        }
+        else
+        {
+            _curState = _stateDic[UserStateType.Resting];
+            _curState.Enter(this);
+#if UNITY_EDITOR
+            //Debug.Log("初始化状态: " + _curState.StateType.ToString());
+#endif
+
+        }
     }
 
     private string chooseBar(int a)
     {
-        if(a==1)
+        if (a == 1)
         {
             //找电量最少的充电桩
-            return barA.barInfo.curBattery < barB.barInfo.curBattery ? 
+            return barA.barInfo.curBattery < barB.barInfo.curBattery ?
                 barA.gameObject.ToString() : barB.gameObject.ToString();
         }
-        if(a==2)
+        if (a == 2)
         {
             //找电量多的
             return barA.barInfo.curBattery > barB.barInfo.curBattery ?
@@ -126,6 +162,8 @@ public class UserController : MonoBehaviour
     ///// 下一目标
     ///// </summary>
     //public Transform nextTarget;
+    [NonSerialized]
+    public GameObject curChargeBar;
 
     /**********************************************************/
 
@@ -151,27 +189,21 @@ public class UserController : MonoBehaviour
 
     /**********************************************************/
 
-    private void Awake()
-    {
-        _stateDic[UserStateType.Running] = new UserRunState();
-        _stateDic[UserStateType.getCharged] = new UserChargedState();
-        _stateDic[UserStateType.Charging] = new UserChargingState();
-        _stateDic[UserStateType.Resting] = new UserRestState();
-
-        //写入初始状态
-        _curState = _stateDic[initState];
-    }
-
     private void Start()
     {
         isCharge = false;
 
         userInfo = GetComponent<UserInfo>();
+
         aipath = GetComponent<AIPath>();
-        if (_curState.StateType == UserStateType.Running)
-            _curState.Enter(this);
-        else if (_curState.StateType == UserStateType.getCharged)
-            _curState.Enter(this, chargeBarATarget.ToString());
+
+        _stateDic[UserStateType.Running] = new UserRunState();
+        _stateDic[UserStateType.getCharged] = new UserChargedState();
+        _stateDic[UserStateType.Charging] = new UserChargingState();
+        _stateDic[UserStateType.Resting] = new UserRestState();
+
+        StateInit(initState);
+
     }
 
     private void Update()
@@ -181,9 +213,14 @@ public class UserController : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if(other.gameObject.name.Equals("ChargeCapsule_A") || other.gameObject.name.Equals("ChargeCapsule_B"))
+        if (other.gameObject.name.Equals("ChargeCapsule_A") || other.gameObject.name.Equals("ChargeCapsule_B"))
         {
+            curChargeBar = other.gameObject;
             isCharge = true;
+        }
+        if (other.gameObject.name.Equals("parkTarget") && _curState.StateType == UserStateType.Resting)
+        {
+            isPark = true;
         }
     }
 
@@ -191,7 +228,12 @@ public class UserController : MonoBehaviour
     {
         if (other.gameObject.name.Equals("ChargeCapsule_A") || other.gameObject.name.Equals("ChargeCapsule_B"))
         {
+            curChargeBar = other.gameObject;
             isCharge = false;
+        }
+        if (other.gameObject.name.Equals("parkTarget"))
+        {
+            isPark = false;
         }
     }
 

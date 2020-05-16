@@ -1,11 +1,7 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using System;
-using System.Globalization;
-using UnityEditorInternal;
 using UnityEngine.UI;
-using JetBrains.Annotations;
 
 public class UserInfo : MonoBehaviour
 {
@@ -19,7 +15,7 @@ public class UserInfo : MonoBehaviour
     public class Info
     {
         /// <summary>
-        /// 初始电量信息
+        /// 电量信息
         /// </summary>
         [Range(0, maxBattery)]
         public int curBattery;
@@ -35,7 +31,13 @@ public class UserInfo : MonoBehaviour
         /// 充电币
         /// </summary>
         [Tooltip("充电币")]
-        public int Currency;
+        public float Currency;
+
+        /// <summary>
+        /// 失信记录
+        /// </summary>
+        [Tooltip("失信记录")]
+        public int CreditRecord = 0;
 
         Color m_curColor;
         public Color curColor
@@ -71,6 +73,7 @@ public class UserInfo : MonoBehaviour
     /// <summary>
     /// 充电记录
     /// </summary>
+    [Serializable]
     public class chargeDeltaRecord
     {
         public Vector2 startTime;
@@ -78,10 +81,23 @@ public class UserInfo : MonoBehaviour
         public int startPower;
         public int endPower;
         public float balance;
-        public int rewards;
+        public float realPay;
+        public float rewards;
+
+        /// <summary>
+        /// 电量变化
+        /// </summary>
+        public float deltaPower
+        {
+            get
+            {
+                return endPower - startPower;
+            }
+        }
 
         public bool isStart;
         public bool isEnd;
+        public string targetBar;
 
         public chargeDeltaRecord()
         {
@@ -90,7 +106,10 @@ public class UserInfo : MonoBehaviour
             startPower = 0;
             endPower = 0;
             balance = 0f;
-            rewards = 0;
+            realPay = 0f;
+            rewards = 0f;
+            targetBar = "";
+
             isStart = false;
             isEnd = false;
         }
@@ -102,27 +121,31 @@ public class UserInfo : MonoBehaviour
             startPower = record.startPower;
             endPower = record.endPower;
             balance = record.balance;
+            realPay = record.realPay;
             rewards = record.rewards;
+            targetBar = record.targetBar;
+
             isStart = false;
             isEnd = false;
         }
 
-        public void StartCharge(Vector2 starttime,int startpower)
+        public void StartCharge(Vector2 starttime, int startpower, string targetbar)
         {
             if (isStart) return;
             startTime = starttime;
             startPower = startpower;
+            targetBar = targetbar;
+
             isStart = true;
         }
 
-        public void EndCharge(Vector2 endtime,int endpower, SimulationParam simulation)
+        public void EndCharge(Vector2 endtime, int endpower, SimulationParam simulation, float realpay)
         {
             if (isEnd) return;
             endTime = endtime;
             endPower = endpower;
+            realPay = realpay;
             isEnd = true;
-
-            int deltaPower = endPower - startPower;
 
             //获取积分
             if (deltaPower < 0)
@@ -143,15 +166,22 @@ public class UserInfo : MonoBehaviour
     [NonSerialized]
     public List<chargeDeltaRecord> chargedeltaRecords = new List<chargeDeltaRecord>();
 
+    /// <summary>
+    /// 充电记录缓冲区
+    /// </summary>
     [NonSerialized]
     public chargeDeltaRecord chargeRecord = new chargeDeltaRecord();
 
     public void AddToMsgList()
     {
-        if(chargeRecord.isEnd)
+        if (chargeRecord.isEnd)
         {
             chargedeltaRecords.Add(new chargeDeltaRecord(chargeRecord));
-            chargeRecord.isEnd = false;chargeRecord.isStart = false;
+            chargeRecord.isEnd = false; chargeRecord.isStart = false;
+
+            //发送消息给企业和政府
+            companyMsg.SandMsg(chargeRecord);
+            governmentMsg.SandMsg(chargeRecord);
         }
     }
 
@@ -164,9 +194,13 @@ public class UserInfo : MonoBehaviour
     /// <summary>
     /// 公有参数Asset
     /// </summary>
-    [Header("参数资源")]
+    [Header("外部依赖")]
     [Tooltip("创建方式：AssetMenu->NewSimulationParamAsset")]
     public SimulationParam simulationParam;
+
+    public ScrollMsgController companyMsg;
+
+    public ScrollMsgController governmentMsg;
 
     /**********************************************************/
     //UI 依赖项
@@ -180,8 +214,11 @@ public class UserInfo : MonoBehaviour
 
     public Text creditText;
 
+    public Text curStateText;
+
     public Text msgText;
 
+    [Tooltip("支付界面")]
     public GameObject PayPanel;
 
     /**********************************************************/
@@ -194,19 +231,12 @@ public class UserInfo : MonoBehaviour
     /// </summary>
     private int deltaTime;
 
-    /// <summary>
-    /// 之前一次更新的电量
-    /// </summary>
-    private int preBattery;
-
-    /// <summary>
-    /// 开始记录的电量
-    /// </summary>
-    private int startBattery;
-
     private void Start()
     {
-        payState = PayState.Unknow;
+        PayPanel.SetActive(false);
+
+        msgText.text = "\r\n\r\n...";
+
         userController = GetComponent<UserController>();
     }
 
@@ -224,18 +254,15 @@ public class UserInfo : MonoBehaviour
             Update_BasedOnTime();
 
 #if UNITY_EDITOR
-            Debug.Log("电量：" + userInfo.curBattery.ToString());
+            //Debug.Log("电量：" + userInfo.curBattery.ToString());
 #endif
 
         }
 
-        if(preBattery != userInfo.curBattery)
-        {
-            startBattery += Mathf.Abs(userInfo.curBattery - preBattery);
-        }
+        //更新电量信息
+        //Update_BasedOnBattery();
 
-        Update_BasedOnBattery();
-
+        //更新UI
         UpdateUserUI();
 
     }
@@ -251,10 +278,6 @@ public class UserInfo : MonoBehaviour
             case UserController.UserStateType.Charging:
                 break;
             case UserController.UserStateType.getCharged:
-                if(userController.isCharge)
-                {
-                    chargeRecord.StartCharge(DayTimerController.curDayTime, userInfo.curBattery);
-                }
                 break;
             case UserController.UserStateType.Resting:
                 break;
@@ -279,7 +302,7 @@ public class UserInfo : MonoBehaviour
                 //给充电桩充电
                 if (userController.isCharge == true)
                     userInfo.curBattery = Mathf.Clamp(userInfo.curBattery - simulationParam.getCarPowerSpeed, 0, Info.maxBattery);
-                else if(userController.isCharge == false)
+                else if (userController.isCharge == false) //  还没到达充电桩
                     userInfo.curBattery = Mathf.Clamp(userInfo.curBattery - simulationParam.usePowerSpeed, 0, Info.maxBattery);
 
                 break;
@@ -287,12 +310,15 @@ public class UserInfo : MonoBehaviour
                 //被充电
                 if (userController.isCharge == true)
                     userInfo.curBattery = Mathf.Clamp(userInfo.curBattery + simulationParam.getBarPowerSpeed, 0, Info.maxBattery);
-                else if (userController.isCharge == false)
+                else if (userController.isCharge == false) //  还没到达充电桩
                     userInfo.curBattery = Mathf.Clamp(userInfo.curBattery - simulationParam.usePowerSpeed, 0, Info.maxBattery);
 
                 break;
             case UserController.UserStateType.Resting:
-                //啥也不干
+                //耗电
+                if (userController.isPark == false)
+                    userInfo.curBattery = Mathf.Clamp(userInfo.curBattery - simulationParam.usePowerSpeed, 0, Info.maxBattery);
+
                 break;
             default:
                 break;
@@ -301,16 +327,37 @@ public class UserInfo : MonoBehaviour
 
     public enum PayState
     {
-        Unknow,
         Pay,
         UnPay
     }
 
-    public PayState payState;
+    public PayState payState { get; set; } = PayState.UnPay;
 
     public void PayStateController(int key)
     {
         payState = (PayState)key;
+
+        if (payState == PayState.Pay)
+        {
+            userInfo.Balance += userController.userInfo.chargeRecord.balance; //  改变余额
+            //发送消息给userInfo
+            chargeRecord.EndCharge(DayTimerController.curDayTime,
+                    userInfo.curBattery, simulationParam, userController.userInfo.chargeRecord.balance);
+        }
+        else if (payState == PayState.UnPay) 
+        {
+            //失信记录增加
+            userInfo.CreditRecord++;
+            //惩罚
+            userInfo.Currency *= simulationParam.creditPublishRate;
+
+            //发送消息给userInfo
+            chargeRecord.EndCharge(DayTimerController.curDayTime,
+                    userInfo.curBattery, simulationParam, 0f);
+        }
+        //加入消息列表
+        userController.userInfo.AddToMsgList();
+
         userController.dayTimerController.button_Normal();
     }
 
@@ -328,14 +375,76 @@ public class UserInfo : MonoBehaviour
 
         currencyText.text = string.Format("充电币: {0}", userInfo.Currency);
 
-        creditText.text = string.Format("失信记录: 0");
 
-        //string msgString = "";
+        string stateString = "";
+        switch (userController._curState.StateType)
+        {
+            case UserController.UserStateType.Running:
+                stateString = "行驶";
+                break;
+            case UserController.UserStateType.Charging:
+                if (userController.curChargeBar)
+                    stateString = "给 " + userController.curChargeBar.GetComponent<ChargeBarController>().barInfo.ID + " 充电";
+                break;
+            case UserController.UserStateType.getCharged:
+                if (userController.curChargeBar)
+                    stateString = "在 " + userController.curChargeBar.GetComponent<ChargeBarController>().barInfo.ID + " 处，充电";
+                break;
+            case UserController.UserStateType.Resting:
+                stateString = "停泊休息";
+                break;
+            default:
+                break;
+        }
+        curStateText.text = "当前行为: " + stateString;
 
-        //for(int i=0;i<2;i++)
-        //{
-        //    msgString += chargedeltaRecords[chargedeltaRecords.Count - 1 - i].ToString();
-        //}
+        creditText.text = string.Format("失信记录: {0}", userInfo.CreditRecord);
+
+        //消息列表显示
+
+        string msgString = "";
+
+        int curIndex;
+
+        //获取消息列表顶端的两个消息
+        for (int i = 0; i < 2; i++)
+        {
+            curIndex = chargedeltaRecords.Count - 1 - i;
+            
+            if (curIndex >= 0) //  没有越界
+            {
+                //给充电桩充电的记录
+                if (chargedeltaRecords[curIndex].deltaPower < 0)
+                {
+                    msgString +=
+                    string.Format("{0}:{1}: U0001->{2}-pow:{3}-rew:{4}\r\n",
+                    chargedeltaRecords[curIndex].endTime.x,
+                    chargedeltaRecords[curIndex].endTime.y,
+                    chargedeltaRecords[curIndex].targetBar,
+                    chargedeltaRecords[curIndex].deltaPower,
+                    chargedeltaRecords[curIndex].rewards);
+                }
+                //被充电的记录
+                else if (chargedeltaRecords[curIndex].deltaPower > 0)
+                {
+                    msgString +=
+                    string.Format("{0}:{1}: {2}->U0001-pow:{3}-pay:{4}\r\n",
+                    chargedeltaRecords[curIndex].endTime.x,
+                    chargedeltaRecords[curIndex].endTime.y,
+                    chargedeltaRecords[curIndex].targetBar,
+                    chargedeltaRecords[curIndex].deltaPower,
+                    chargedeltaRecords[curIndex].balance);
+                }
+            }
+            else //  越界
+            {
+                msgString += " \r\n";
+            }
+        }
+
+        msgString += "...";
+
+        msgText.text = msgString;
 
     }
 

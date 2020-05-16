@@ -26,11 +26,18 @@ public class ChargeBarController : MonoBehaviour
     public class Info
     {
         /// <summary>
-        /// 所属的用户的信息
+        /// 充电桩ID
         /// </summary>
-        [Header("所属用户")]
+        [Header("充电桩ID")]
+        public string ID;
+
+        /// <summary>
+        /// 用户的信息
+        /// </summary>
+        [Header("用户")]
         public GameObject userBelong = null;
-        UserInfo userInfo = null;
+
+        public bool isPublic;
 
         /// <summary>
         /// 初始电量信息
@@ -98,10 +105,15 @@ public class ChargeBarController : MonoBehaviour
     /// </summary>
     [Header("消息Text")]
     public Text msgText;
+    /// <summary>
+    /// 用户充电币
+    /// </summary>
+    [Header("用户充电币Text")]
+    public Text userCurrencyText;
 
-    [Range(0,23)]
+    [Range(0, 23)]
     public int SunPowerStartTime;
-    [Range(0,23)]
+    [Range(0, 23)]
     public int SunPowerEndTime;
 
     public SpriteRenderer sprite_Bar;
@@ -136,7 +148,7 @@ public class ChargeBarController : MonoBehaviour
             Update_BasedOnTime();
 
 #if UNITY_EDITOR
-            Debug.Log(string.Format("{0} 电量：{1}", gameObject.name, barInfo.curBattery.ToString()));
+            //Debug.Log(string.Format("{0} 电量：{1}", gameObject.name, barInfo.curBattery.ToString()));
 #endif
 
         }
@@ -147,14 +159,14 @@ public class ChargeBarController : MonoBehaviour
 
     private void Update_BasedOnTime()
     {
-        
+        if (DayTimerController.curDayTime.x >= SunPowerStartTime && DayTimerController.curDayTime.x < SunPowerEndTime)
+        {
+            barInfo.curBattery = Mathf.Clamp(barInfo.curBattery + simulationParam.getSunPowerSpeed, 0, Info.maxBattery);
+        }
         switch (_curstate)
         {
             case barStateType.Resting:
-                if (DayTimerController.curDayTime.x >= SunPowerStartTime && DayTimerController.curDayTime.x < SunPowerEndTime)
-                {
-                    barInfo.curBattery = Mathf.Clamp(barInfo.curBattery + simulationParam.getSunPowerSpeed, 0, Info.maxBattery);
-                }
+                //Do Nothing
                 break;
             case barStateType.Charging:
                 barInfo.curBattery = Mathf.Clamp(barInfo.curBattery - simulationParam.getBarPowerSpeed, 0, Info.maxBattery);
@@ -170,7 +182,7 @@ public class ChargeBarController : MonoBehaviour
     void stateUpdate()
     {
         //如果用户在充电
-        if(userController.isCharge && userController._curState.StateType == UserController.UserStateType.Charging)
+        if (userController.isCharge && userController._curState.StateType == UserController.UserStateType.Charging)
         {
             //在给自己充电
             if (userController.curTarget.Equals(transform))
@@ -207,7 +219,22 @@ public class ChargeBarController : MonoBehaviour
         bettaryStateImage.color = barInfo.curColor;
         sprite_Bar.color = barInfo.curColor;
 
+        //所属用户充电币更新
+        if (barInfo.isPublic == false)
+        {
+            userCurrencyText.text = barInfo.userBelong.GetComponent<UserInfo>().currencyText.text;
+        }
+        else
+        {
+            userCurrencyText.text = "充电币: -";
+        }
+
         //消息通知更新：
+
+        if (barInfo.userBelong != null)
+        {
+            msgText.text = barInfo.userBelong.GetComponent<UserInfo>().msgText.text;
+        }
 
     }
 
