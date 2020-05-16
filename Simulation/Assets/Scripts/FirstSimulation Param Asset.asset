@@ -12,12 +12,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 80cd0ca84ea509c4fa9bc31c57671dc2, type: 3}
   m_Name: FirstSimulation Param Asset
   m_EditorClassIdentifier: 
-  unitDayTime: 50
-  getSunPowerSpeed: 10
-  getCarPowerSpeed: 5
-  getBarPowerSpeed: 10
+  unitDayTime: 5
+  getSunPowerSpeed: 5
+  getCarPowerSpeed: 3
+  lowBatteryAlarm: 0.1
+  getBarPowerSpeed: 6
   usePowerSpeed: 2
-  chargeRewardSpeed: 50
-  chargeCostSpeed: 50
+  chargeRewardSpeed: 20
+  chargeCostSpeed: 100
   creditPublishRate: 0.8
-  lowPowerAlarm: 0.25
+  startChargdePower: 0.1
+  stopChargedPower: 0.7
+  startChargingPower: 0.6
