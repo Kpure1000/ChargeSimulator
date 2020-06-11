@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 using System;
-using UnityEngine.UI;
 
 public class UserInfo : MonoBehaviour
 {
@@ -331,6 +330,9 @@ public class UserInfo : MonoBehaviour
         UnPay
     }
 
+    /// <summary>
+    /// 付费弹窗按钮 回调方法
+    /// </summary>
     public PayState payState { get; set; } = PayState.UnPay;
 
     public void PayStateController(int key)
@@ -339,12 +341,12 @@ public class UserInfo : MonoBehaviour
 
         if (payState == PayState.Pay)
         {
+            var realPay = -userController.userInfo.chargeRecord.deltaPower / simulationParam.chargeCostSpeed;//实际支付
+            chargeRecord.EndCharge(DayTimerController.curDayTime, userInfo.curBattery,
+                simulationParam, realPay);//发送消息给userInfo
             userInfo.Balance += userController.userInfo.chargeRecord.balance; //  改变余额
-            //发送消息给userInfo
-            chargeRecord.EndCharge(DayTimerController.curDayTime,
-                    userInfo.curBattery, simulationParam, userController.userInfo.chargeRecord.balance);
         }
-        else if (payState == PayState.UnPay) 
+        else if (payState == PayState.UnPay)
         {
             //失信记录增加
             userInfo.CreditRecord++;
@@ -410,7 +412,7 @@ public class UserInfo : MonoBehaviour
         for (int i = 0; i < 2; i++)
         {
             curIndex = chargedeltaRecords.Count - 1 - i;
-            
+
             if (curIndex >= 0) //  没有越界
             {
                 //给充电桩充电的记录
