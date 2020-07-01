@@ -18,6 +18,11 @@ ver1.1
 * App for Client
 * Web for Administrator
 
+## <s>bai piao lian jie<s/>
+ 
+Release:
+https://github.com/Kpure1000/ChargeSimulator/releases
+
 ## ScreenCatch
 
 <img src="https://github.com/Kpure1000/ImageRepository/blob/master/%E6%A8%A1%E6%8B%9F%E6%88%AA%E5%9B%BE1.jpg" width = "400" alt="" align=left />
