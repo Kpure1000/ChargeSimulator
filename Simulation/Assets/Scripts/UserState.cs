@@ -217,7 +217,7 @@ public class UserChargedState : UserState
                 //停止时间
                 userController.dayTimerController.button_Pause();
                 //弹窗
-                Debug.Log("弹窗");
+                //Debug.Log("弹窗");
                 userController.userInfo.PayPanel.SetActive(true);
 
                 userController.curChargeBar = null;

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using System;
 using UnityEngine.UI;
+using System.Threading;
 
 public class ChargeBarController : MonoBehaviour
 {
@@ -187,7 +188,10 @@ public class ChargeBarController : MonoBehaviour
             //在给自己充电
             if (userController.curTarget.Equals(transform))
             {
-                _curstate = barStateType.Charged;
+                if (userController.userInfo.userInfo.curBattery > 0)
+                    _curstate = barStateType.Charged;
+                else
+                    _curstate = barStateType.Resting;
             }
         }
         //如果用户在被充电
@@ -196,7 +200,10 @@ public class ChargeBarController : MonoBehaviour
             //在被自己充电
             if (userController.curTarget.Equals(transform))
             {
-                _curstate = barStateType.Charging;
+                if (userController.userInfo.userInfo.curBattery < UserInfo.Info.maxBattery)
+                    _curstate = barStateType.Charging;
+                else
+                    _curstate = barStateType.Resting;
             }
         }
         //没有与用户相连

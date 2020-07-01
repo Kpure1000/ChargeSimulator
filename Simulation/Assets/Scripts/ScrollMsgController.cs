@@ -67,18 +67,24 @@ public class ScrollMsgController : MonoBehaviour
         }
 
     }
-
+    /// <summary>
+    /// 发送消息给企业和政府
+    /// </summary>
+    /// <param name="record"></param>
     public void SandMsg(UserInfo.chargeDeltaRecord record)
     {
+#if UNITY_EDITOR
         Debug.Log("发送消息！");
-
+#endif
         string msgString = "";
         switch (partType)
         {
             case PartType.Company:
                 if (record.deltaPower < 0)
                 {
+#if UNITY_EDITOR
                     Debug.Log("获取消息：充电！");
+#endif
                     msgString =
                     string.Format("{0}:{1}: U0001 给 {2}-充电:{3}-奖励:{4}",
                     record.endTime.x,
@@ -90,14 +96,16 @@ public class ScrollMsgController : MonoBehaviour
                 //被充电的记录
                 else if (record.deltaPower > 0)
                 {
+#if UNITY_EDITOR
                     Debug.Log("获取消息：被充电！");
+#endif
                     msgString =
                     string.Format("{0}:{1}: {2} 给 U0001-充电:{3}-实际支付:{4}",
                     record.endTime.x,
                     record.endTime.y,
                     record.targetBar,
                     record.deltaPower,
-                    record.realPay);
+                    -record.realPay);
                 }
                 //加入队列
                 _scrollMsgs.Enqueue(msgString);
