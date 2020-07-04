@@ -1,6 +1,8 @@
 # Charge Simulator
 
-author https://github.com/Kpure1000
+author
+* https://github.com/Kpure1000
+* https://github.com/zswbs35
 
 ver1.1
 
