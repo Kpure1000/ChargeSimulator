@@ -1,6 +1,6 @@
 # Charge Simulator
 
-author https://github.com/Kpure1000、https://github.com/Tsutsukakushimutsu
+author https://github.com/Kpure1000
 
 ver1.1
 
