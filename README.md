@@ -20,7 +20,7 @@ ver1.1
 * App for Client
 * Web for Administrator
 
-## <s>bai piao lian jie<s/>
+## <s>bai piao lian jie</s>
  
 Release:
 https://github.com/Kpure1000/ChargeSimulator/releases
