@@ -26,6 +26,7 @@ Release:
 https://github.com/Kpure1000/ChargeSimulator/releases
 
 ## ScreenCatch
+（截图需要科学上网进行查看）
 
 <img src="https://github.com/Kpure1000/ImageRepository/blob/master/%E6%A8%A1%E6%8B%9F%E6%88%AA%E5%9B%BE1.jpg" width = "400" alt="" align=left />
 
